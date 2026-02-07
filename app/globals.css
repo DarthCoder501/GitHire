@@ -1,26 +1,151 @@
 @import "tailwindcss";
 
+/* ─── Design tokens ─── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --void-black: #07080d;
+  --deep-navy: #0b0e18;
+  --surface-1: rgba(17, 21, 35, 0.65);
+  --surface-2: rgba(24, 30, 52, 0.55);
+  --border-glass: rgba(255, 255, 255, 0.06);
+  --border-glow: rgba(0, 229, 176, 0.15);
+  --teal: #00e5b0;
+  --teal-dim: rgba(0, 229, 176, 0.12);
+  --green: #00ff41;
+  --green-dim: rgba(0, 255, 65, 0.1);
+  --amber: #ffbe0b;
+  --red: #ff4d6a;
+  --text-primary: #f0f2f5;
+  --text-secondary: rgba(240, 242, 245, 0.55);
+  --text-tertiary: rgba(240, 242, 245, 0.3);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme inline {
+  --color-background: var(--void-black);
+  --color-foreground: var(--text-primary);
+  --color-teal: var(--teal);
+  --color-teal-dim: var(--teal-dim);
+  --color-green: var(--green);
+  --color-green-dim: var(--green-dim);
+  --color-amber: var(--amber);
+  --color-red: var(--red);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-border-glass: var(--border-glass);
+  --color-border-glow: var(--border-glow);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ─── Base ─── */
+body {
+  background: var(--void-black);
+  color: var(--text-primary);
+  font-family:
+    var(--font-sans),
+    system-ui,
+    -apple-system,
+    sans-serif;
+  overflow-x: hidden;
+}
+
+/* ─── Glassmorphism 3.0 ─── */
+.glass {
+  background: var(--surface-1);
+  backdrop-filter: blur(40px) saturate(1.4);
+  -webkit-backdrop-filter: blur(40px) saturate(1.4);
+  border: 1px solid var(--border-glass);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
+    0 8px 40px rgba(0, 0, 0, 0.45),
+    0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+.glass-hover {
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.glass-hover:hover {
+  border-color: var(--border-glow);
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 176, 0.08) inset,
+    0 8px 48px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(0, 229, 176, 0.06);
+  transform: translateY(-2px);
+}
+
+/* ─── Gradient text ─── */
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    var(--teal) 0%,
+    #00ffb2 50%,
+    var(--green) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Glow ring on inputs ─── */
+.glow-ring:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--teal),
+    0 0 20px rgba(0, 229, 176, 0.2),
+    0 0 60px rgba(0, 229, 176, 0.08);
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ─── Noise texture overlay ─── */
+.noise::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  z-index: 9999;
+}
+
+/* ─── Pulse keyframe for the score ring ─── */
+@keyframes score-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px rgba(0, 229, 176, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgba(0, 229, 176, 0.55));
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─── Scanning line animation ─── */
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+.scanning-line {
+  animation: scan-line 1.8s ease-in-out infinite;
 }

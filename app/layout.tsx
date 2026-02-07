@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zero-Latency Voice Validator",
-  description: "A Frugal, High-Performance Conversational AI with 3D Avatar",
+  title: "GitHire — GitHub Profile to Hiring Insights",
+  description:
+    "Analyze any developer's GitHub profile and produce a comprehensive, hiring-grade evaluation with scores, strengths, weaknesses, and a final recommendation.",
 };
 
 export default function RootLayout({
@@ -23,9 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased noise`}
       >
         {children}
       </body>
