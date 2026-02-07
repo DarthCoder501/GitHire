@@ -267,7 +267,7 @@ export function SpeechBubble({
                     transition={{
                       duration: 0.5,
                       repeat: Infinity,
-                      ease: "steps(2)",
+                      ease: [0.5, 1, 0.5, 0],
                     }}
                   />
                 )}
