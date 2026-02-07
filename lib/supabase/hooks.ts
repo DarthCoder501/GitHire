@@ -11,6 +11,12 @@ export function useUser() {
   useEffect(() => {
     const supabase = createClient();
 
+    // If Supabase is not configured, skip auth entirely
+    if (!supabase || !supabase.auth) {
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);

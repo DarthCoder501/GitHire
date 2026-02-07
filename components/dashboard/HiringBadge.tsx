@@ -1,7 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, AlertTriangle, Sparkles } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
 
 type Verdict = "Strong Yes" | "Yes" | "Lean Yes" | "No";
 
@@ -11,7 +17,7 @@ const verdictConfig: Record<
     color: string;
     bg: string;
     border: string;
-    icon: React.ElementType;
+    icon: LucideIcon;
     glow: string;
   }
 > = {

@@ -25,68 +25,6 @@ import { NavHeader } from "@/components/NavHeader";
 import { getSpeechAudioManager } from "@/lib/audio/SpeechAudioManager";
 import type { HiringReport } from "@/lib/types/report";
 
-/* ─── Mock data ─── */
-const MOCK: HiringReport = {
-  username: "torvalds",
-  avatarUrl: "https://avatars.githubusercontent.com/u/1024025?v=4",
-  name: "Linus Torvalds",
-  bio: "Creator of Linux & Git",
-  publicRepos: 7,
-  followers: 214_000,
-  overallScore: 96,
-  verdict: "Strong Yes" as const,
-  verdictReasoning:
-    "Exceptional systems-level engineer with unmatched open-source impact. Defines industry standards.",
-  scores: {
-    codeQuality: 97,
-    consistency: 92,
-    impact: 99,
-    documentation: 78,
-    testing: 72,
-  },
-  strengths: [
-    { label: "World-class systems architecture", icon: "architecture" },
-    { label: "Legendary Git workflow & history", icon: "git" },
-    { label: "Clean, idiomatic C code style", icon: "code" },
-    { label: "Deep OS kernel expertise", icon: "security" },
-    { label: "Influential open-source leadership", icon: "default" },
-  ],
-  weaknesses: [
-    { label: "Sparse README / documentation", icon: "docs" },
-    { label: "Limited test coverage visibility", icon: "default" },
-    { label: "Few modern language projects", icon: "code" },
-  ],
-  skills: [
-    { skill: "Architecture", value: 98 },
-    { skill: "Code Quality", value: 95 },
-    { skill: "Testing", value: 72 },
-    { skill: "Documentation", value: 75 },
-    { skill: "Consistency", value: 90 },
-    { skill: "Innovation", value: 99 },
-  ],
-  activity: [
-    { month: "Mar", commits: 48 },
-    { month: "Apr", commits: 72 },
-    { month: "May", commits: 65 },
-    { month: "Jun", commits: 90 },
-    { month: "Jul", commits: 110 },
-    { month: "Aug", commits: 85 },
-    { month: "Sep", commits: 120 },
-    { month: "Oct", commits: 95 },
-    { month: "Nov", commits: 140 },
-    { month: "Dec", commits: 105 },
-    { month: "Jan", commits: 130 },
-    { month: "Feb", commits: 115 },
-  ],
-  highlights: [
-    "Created Linux kernel — used by 96.3% of top 1M servers",
-    "Invented Git — the de-facto version control standard",
-    "27+ years of continuous open-source contribution",
-  ],
-  executiveSummary:
-    "Beep boop! Analysis complete for torvalds. They demonstrate exceptional Senior-level mastery in C and systems programming, with legendary open-source leadership that has shaped the entire industry. Code quality is world-class, consistency across decades is remarkable. However, documentation and test coverage in some repos could be stronger. Overall: a definitive Strong Yes for hiring — this is a generational talent.",
-};
-
 /* ─── Animation variants ─── */
 const stagger = {
   hidden: {},
@@ -107,13 +45,15 @@ export default function Home() {
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [report, setReport] = useState<HiringReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Audio manager ref — primed during the user-gesture click
   const audioMgrRef = useRef<ReturnType<typeof getSpeechAudioManager> | null>(
     null,
   );
 
-  const handleAnalyze = useCallback(() => {
+  const handleAnalyze = useCallback(async () => {
     if (!username.trim()) return;
 
     // Prime AudioContext during user gesture (autoplay policy)
@@ -126,11 +66,27 @@ export default function Home() {
 
     setIsLoading(true);
     setShowResults(false);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    setReport(null);
+    setError(null);
+
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? `Error ${res.status}`);
+      }
+      setReport(data.report);
       setShowResults(true);
-    }, 2800);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setShowResults(false);
+    } finally {
+      setIsLoading(false);
+    }
   }, [username]);
 
   return (
@@ -175,8 +131,8 @@ export default function Home() {
               {/* Speech Bubble — positioned to the right of the robot */}
               <div className="flex-1 min-w-0 pt-4">
                 <SpeechBubble
-                  text={MOCK.executiveSummary}
-                  active={showResults}
+                  text={report?.executiveSummary ?? ""}
+                  active={showResults && !!report}
                   audioManagerRef={audioMgrRef}
                 />
               </div>
@@ -236,7 +192,7 @@ export default function Home() {
                   {isLoading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-[#07080D]/30 border-t-[#07080D] rounded-full animate-spin" />
-                      Scanning profile...
+                      Analyzing repos…
                     </>
                   ) : (
                     <>
@@ -253,9 +209,29 @@ export default function Home() {
                 </motion.button>
               </div>
 
+              {/* Error display */}
+              <AnimatePresence>
+                {error && (
+                  <motion.div
+                    className="mt-4 glass rounded-xl p-4"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertCircle
+                        size={16}
+                        className="text-red-400 mt-0.5 shrink-0"
+                      />
+                      <p className="text-sm text-red-300">{error}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Quick stats beneath input (shown after results) */}
               <AnimatePresence>
-                {showResults && (
+                {showResults && report && (
                   <motion.div
                     className="mt-6 glass rounded-2xl p-5"
                     initial={{ opacity: 0, y: 12 }}
@@ -266,26 +242,26 @@ export default function Home() {
                     {/* Profile card */}
                     <div className="flex items-center gap-3 mb-4">
                       <Image
-                        src={MOCK.avatarUrl}
-                        alt={MOCK.name}
+                        src={report!.avatarUrl}
+                        alt={report!.name}
                         width={44}
                         height={44}
                         className="rounded-full ring-2 ring-teal/20"
                       />
                       <div>
-                        <p className="text-sm font-semibold">{MOCK.name}</p>
+                        <p className="text-sm font-semibold">{report!.name}</p>
                         <p className="text-xs text-text-secondary font-mono">
-                          @{MOCK.username}
+                          @{report!.username}
                         </p>
                       </div>
                     </div>
                     <p className="text-xs text-text-secondary leading-relaxed mb-4">
-                      {MOCK.bio}
+                      {report!.bio}
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="text-center p-2 rounded-lg bg-white/[0.02]">
                         <p className="text-lg font-bold text-teal">
-                          {MOCK.publicRepos}
+                          {report!.publicRepos}
                         </p>
                         <p className="text-[10px] text-text-tertiary font-mono uppercase tracking-wider">
                           Repos
@@ -293,7 +269,7 @@ export default function Home() {
                       </div>
                       <div className="text-center p-2 rounded-lg bg-white/[0.02]">
                         <p className="text-lg font-bold text-teal">
-                          {(MOCK.followers / 1000).toFixed(0)}k
+                          {(report!.followers / 1000).toFixed(0)}k
                         </p>
                         <p className="text-[10px] text-text-tertiary font-mono uppercase tracking-wider">
                           Followers
@@ -337,7 +313,7 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {showResults && (
+              {showResults && report && (
                 <>
                   {/* Export controls — above the bento grid */}
                   <motion.div
@@ -350,7 +326,7 @@ export default function Home() {
                     <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary">
                       Report Results
                     </span>
-                    <ExportControls report={MOCK} />
+                    <ExportControls report={report!} />
                   </motion.div>
 
                   <motion.div
@@ -368,7 +344,7 @@ export default function Home() {
                       <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4">
                         Overall Hiring Score
                       </span>
-                      <ScoreRing score={MOCK.overallScore} size={170} />
+                      <ScoreRing score={report!.overallScore} size={170} />
                     </GlassCard>
 
                     {/* Panel 2 — Hiring Recommendation */}
@@ -377,15 +353,15 @@ export default function Home() {
                         Hiring Decision
                       </span>
                       <HiringBadge
-                        verdict={MOCK.verdict}
-                        reasoning={MOCK.verdictReasoning}
+                        verdict={report!.verdict}
+                        reasoning={report!.verdictReasoning}
                       />
                     </GlassCard>
 
                     {/* Panel 3 — Top Strengths */}
                     <GlassCard variants={fadeUp}>
                       <StrengthsList
-                        items={MOCK.strengths}
+                        items={report!.strengths}
                         title="Top Strengths"
                         accentColor="var(--teal)"
                       />
@@ -393,7 +369,7 @@ export default function Home() {
 
                     {/* Panel 4 — Code Quality Radar */}
                     <GlassCard className="min-h-[260px]" variants={fadeUp}>
-                      <SkillRadar data={MOCK.skills} />
+                      <SkillRadar data={report!.skills} />
                     </GlassCard>
 
                     {/* Panel 5 — Score Breakdown (full width) */}
@@ -404,27 +380,27 @@ export default function Home() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
                         <MiniScoreBar
                           label="Code Quality"
-                          score={MOCK.scores.codeQuality}
+                          score={report!.scores.codeQuality}
                           delay={0}
                         />
                         <MiniScoreBar
                           label="Consistency"
-                          score={MOCK.scores.consistency}
+                          score={report!.scores.consistency}
                           delay={0.1}
                         />
                         <MiniScoreBar
                           label="Impact"
-                          score={MOCK.scores.impact}
+                          score={report!.scores.impact}
                           delay={0.2}
                         />
                         <MiniScoreBar
                           label="Documentation"
-                          score={MOCK.scores.documentation}
+                          score={report!.scores.documentation}
                           delay={0.3}
                         />
                         <MiniScoreBar
                           label="Testing"
-                          score={MOCK.scores.testing}
+                          score={report!.scores.testing}
                           delay={0.4}
                         />
                       </div>
@@ -435,7 +411,7 @@ export default function Home() {
                       className="md:col-span-2 min-h-[240px]"
                       variants={fadeUp}
                     >
-                      <ActivityChart data={MOCK.activity} />
+                      <ActivityChart data={report!.activity} />
                     </GlassCard>
 
                     {/* Panel 7 — Technical Highlights */}
@@ -444,7 +420,7 @@ export default function Home() {
                         Technical Highlights
                       </span>
                       <ul className="space-y-3">
-                        {MOCK.highlights.map((h, i) => (
+                        {report!.highlights.map((h, i) => (
                           <motion.li
                             key={h}
                             className="flex items-start gap-2.5 text-sm text-text-secondary leading-relaxed"
@@ -465,7 +441,7 @@ export default function Home() {
                     {/* Panel 8 — Growth Areas */}
                     <GlassCard variants={fadeUp}>
                       <StrengthsList
-                        items={MOCK.weaknesses}
+                        items={report!.weaknesses}
                         title="Growth Areas"
                         accentColor="var(--amber)"
                       />
