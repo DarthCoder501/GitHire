@@ -168,28 +168,40 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-10 xl:gap-16 items-start">
           {/* ── LEFT: Robot + Input ── */}
           <div className="flex flex-col items-center lg:items-start lg:sticky lg:top-12">
-            {/* Floating Robot */}
-            <motion.div
-              className="relative w-[280px] h-[280px] md:w-[320px] md:h-[320px] mb-6"
-              animate={{ y: [0, -14, 0] }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            >
-              {/* Glow behind robot */}
-              <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(0,229,176,0.1)_0%,transparent_65%)] blur-2xl" />
-              <Image
-                src="/robot.png"
-                alt="GitHire Robot"
-                fill
-                className="object-contain drop-shadow-2xl relative z-10"
-                priority
-              />
-            </motion.div>
+            {/* ── Row: Robot + Speech Bubble side-by-side ── */}
+            <div className="flex items-start gap-5 mb-6 w-full">
+              {/* Floating Robot (anchor) */}
+              <motion.div
+                className="relative w-[200px] h-[200px] md:w-[240px] md:h-[240px] shrink-0"
+                animate={{ y: [0, -14, 0] }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                {/* Glow behind robot */}
+                <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(0,229,176,0.1)_0%,transparent_65%)] blur-2xl" />
+                <Image
+                  src="/robot.png"
+                  alt="GitHire Robot"
+                  fill
+                  className="object-contain drop-shadow-2xl relative z-10"
+                  priority
+                />
+              </motion.div>
 
-            {/* Speech bubble / input area */}
+              {/* Speech Bubble — positioned to the right of the robot */}
+              <div className="flex-1 min-w-0 pt-4">
+                <SpeechBubble
+                  text={MOCK.executiveSummary}
+                  active={showResults}
+                  audioManagerRef={audioMgrRef}
+                />
+              </div>
+            </div>
+
+            {/* Input area (below the robot row) */}
             <motion.div
               className="w-full max-w-[400px]"
               initial={{ opacity: 0, y: 20 }}
@@ -310,13 +322,6 @@ export default function Home() {
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Robot Speech Bubble — Executive Summary */}
-              <SpeechBubble
-                text={MOCK.executiveSummary}
-                active={showResults}
-                audioManagerRef={audioMgrRef}
-              />
             </motion.div>
           </div>
 

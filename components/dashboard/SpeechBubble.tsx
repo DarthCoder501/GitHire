@@ -172,14 +172,14 @@ export function SpeechBubble({
   return (
     <AnimatePresence>
       <motion.div
-        className="w-full max-w-[400px] mt-5 relative"
-        initial={{ opacity: 0, scale: 0.92, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 10 }}
+        className="w-full max-w-[400px] relative"
+        initial={{ opacity: 0, scale: 0.92, x: -10 }}
+        animate={{ opacity: 1, scale: 1, x: 0 }}
+        exit={{ opacity: 0, scale: 0.92, x: -10 }}
         transition={{ type: "spring", stiffness: 260, damping: 22 }}
       >
-        {/* Bubble tail pointing up toward robot */}
-        <div className="absolute -top-2.5 left-10 w-5 h-5 rotate-45 glass border-r-0 border-b-0 z-0" />
+        {/* Bubble tail pointing LEFT toward robot */}
+        <div className="absolute -left-2.5 top-8 w-5 h-5 rotate-45 glass border-t-0 border-r-0 z-0" />
 
         {/* Main bubble */}
         <div
