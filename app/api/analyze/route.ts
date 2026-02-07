@@ -1,13 +1,40 @@
 // ---------------------------------------------------------------------------
 // POST /api/analyze  — full GitHub → Groq analysis pipeline
 // Body: { "username": string }
+// Optional header: Authorization: Bearer <session.access_token> (if signed in, creates a chat in Supabase)
 // Returns: { "report": HiringReport }
 // ---------------------------------------------------------------------------
 
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { fetchProfile, fetchRepos } from "@/lib/github/api";
 import { selectTopRepos, buildRepoSummary } from "@/lib/github/summarize";
 import { analyzeWithGroq } from "@/lib/groq/analyze";
+import {
+  getOrCreateChat,
+  addChatMessage,
+} from "@/lib/conversation/supabase-history";
+
+async function resolveUser(
+  request: NextRequest,
+): Promise<{ userId: string; accessToken: string } | null> {
+  const authHeader = request.headers.get("authorization");
+  const accessToken = authHeader?.replace("Bearer ", "");
+  if (!accessToken) return null;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return null;
+
+  const supabase = createClient(url, anonKey, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  return { userId: user.id, accessToken };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -88,6 +115,52 @@ export async function POST(request: NextRequest) {
     console.log(
       `[analyze] Done — overall score ${report.overallScore}, verdict "${report.verdict}"`,
     );
+
+    // ── If signed in, save report + chat to Supabase (for Compare and Chats) ─
+    const auth = await resolveUser(request);
+    if (auth) {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (url && anonKey) {
+        const supabase = createClient(url, anonKey, {
+          global: { headers: { Authorization: `Bearer ${auth.accessToken}` } },
+        });
+        try {
+          // Save report so Compare can use it
+          const { error: reportErr } = await supabase.from("reports").upsert(
+            {
+              user_id: auth.userId,
+              candidate_username: username.toLowerCase(),
+              payload: report as unknown as Record<string, unknown>,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "user_id,candidate_username" },
+          );
+          if (reportErr) {
+            console.warn("[analyze] Could not save report:", reportErr.message);
+          }
+
+          // Create chat + first message for Chats page
+          if (report.executiveSummary) {
+            const chatId = await getOrCreateChat(
+              auth.accessToken,
+              auth.userId,
+              username,
+            );
+            await addChatMessage(
+              auth.accessToken,
+              chatId,
+              "assistant",
+              report.executiveSummary,
+            );
+            console.log("[analyze] Chat saved to Supabase for", username);
+          }
+        } catch (err) {
+          console.warn("[analyze] Could not save to Supabase:", err);
+          // Don't fail the request; report is still returned
+        }
+      }
+    }
 
     return NextResponse.json({ report });
   } catch (error: unknown) {

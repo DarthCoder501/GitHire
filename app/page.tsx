@@ -23,6 +23,7 @@ import { SpeechBubble } from "@/components/dashboard/SpeechBubble";
 import { ExportControls } from "@/components/dashboard/ExportControls";
 import { NavHeader } from "@/components/NavHeader";
 import { getSpeechAudioManager } from "@/lib/audio/SpeechAudioManager";
+import { createClient } from "@/lib/supabase/client";
 import type { HiringReport } from "@/lib/types/report";
 
 /* ─── Animation variants ─── */
@@ -70,9 +71,18 @@ export default function Home() {
     setError(null);
 
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      const {
+        data: { session },
+      } = await createClient().auth.getSession();
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
       const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ username: username.trim() }),
       });
       const data = await res.json();
