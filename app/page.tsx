@@ -14,19 +14,19 @@ import {
 import { GlassCard } from "@/components/dashboard/GlassCard";
 import { ScoreRing } from "@/components/dashboard/ScoreRing";
 import { HiringBadge } from "@/components/dashboard/HiringBadge";
-import {
-  StrengthsList,
-  type StrengthItem,
-} from "@/components/dashboard/StrengthsList";
+import { StrengthsList } from "@/components/dashboard/StrengthsList";
 import { SkillRadar } from "@/components/dashboard/SkillRadar";
 import { ActivityChart } from "@/components/dashboard/ActivityChart";
 import { MiniScoreBar } from "@/components/dashboard/MiniScoreBar";
 import { SkeletonLoader } from "@/components/dashboard/SkeletonLoader";
 import { SpeechBubble } from "@/components/dashboard/SpeechBubble";
+import { ExportControls } from "@/components/dashboard/ExportControls";
+import { NavHeader } from "@/components/NavHeader";
 import { getSpeechAudioManager } from "@/lib/audio/SpeechAudioManager";
+import type { HiringReport } from "@/lib/types/report";
 
 /* ─── Mock data ─── */
-const MOCK = {
+const MOCK: HiringReport = {
   username: "torvalds",
   avatarUrl: "https://avatars.githubusercontent.com/u/1024025?v=4",
   name: "Linus Torvalds",
@@ -50,12 +50,12 @@ const MOCK = {
     { label: "Clean, idiomatic C code style", icon: "code" },
     { label: "Deep OS kernel expertise", icon: "security" },
     { label: "Influential open-source leadership", icon: "default" },
-  ] satisfies StrengthItem[],
+  ],
   weaknesses: [
     { label: "Sparse README / documentation", icon: "docs" },
     { label: "Limited test coverage visibility", icon: "default" },
     { label: "Few modern language projects", icon: "code" },
-  ] satisfies StrengthItem[],
+  ],
   skills: [
     { skill: "Architecture", value: 98 },
     { skill: "Code Quality", value: 95 },
@@ -98,7 +98,7 @@ const fadeUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+    transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
   },
 };
 
@@ -142,27 +142,8 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 max-w-[1440px] mx-auto px-6 md:px-10 py-8 md:py-12">
-        {/* ─── Header ─── */}
-        <motion.header
-          className="flex items-center gap-3 mb-12"
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Image
-            src="/headstarter-logo.png"
-            alt="Headstarter"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
-          <span className="text-lg font-semibold tracking-tight text-gradient">
-            GitHire
-          </span>
-          <span className="text-xs text-text-tertiary font-mono ml-1">
-            v1.0
-          </span>
-        </motion.header>
+        {/* ─── Header (Nav) ─── */}
+        <NavHeader />
 
         {/* ─── Main Split Layout ─── */}
         <div className="grid grid-cols-1 lg:grid-cols-[440px_1fr] gap-10 xl:gap-16 items-start">
@@ -357,124 +338,140 @@ export default function Home() {
               )}
 
               {showResults && (
-                <motion.div
-                  key="results"
-                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                  variants={stagger}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  {/* Panel 1 — Overall Score */}
-                  <GlassCard
-                    className="flex flex-col items-center justify-center py-8"
-                    variants={fadeUp}
+                <>
+                  {/* Export controls — above the bento grid */}
+                  <motion.div
+                    key="export-bar"
+                    className="flex items-center justify-between mb-4"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4">
-                      Overall Hiring Score
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary">
+                      Report Results
                     </span>
-                    <ScoreRing score={MOCK.overallScore} size={170} />
-                  </GlassCard>
+                    <ExportControls report={MOCK} />
+                  </motion.div>
 
-                  {/* Panel 2 — Hiring Recommendation */}
-                  <GlassCard className="py-8" variants={fadeUp}>
-                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-2 block text-center">
-                      Hiring Decision
-                    </span>
-                    <HiringBadge
-                      verdict={MOCK.verdict}
-                      reasoning={MOCK.verdictReasoning}
-                    />
-                  </GlassCard>
-
-                  {/* Panel 3 — Top Strengths */}
-                  <GlassCard variants={fadeUp}>
-                    <StrengthsList
-                      items={MOCK.strengths}
-                      title="Top Strengths"
-                      accentColor="var(--teal)"
-                    />
-                  </GlassCard>
-
-                  {/* Panel 4 — Code Quality Radar */}
-                  <GlassCard className="min-h-[260px]" variants={fadeUp}>
-                    <SkillRadar data={MOCK.skills} />
-                  </GlassCard>
-
-                  {/* Panel 5 — Score Breakdown (full width) */}
-                  <GlassCard className="md:col-span-2" variants={fadeUp}>
-                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4 block">
-                      Score Breakdown
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
-                      <MiniScoreBar
-                        label="Code Quality"
-                        score={MOCK.scores.codeQuality}
-                        delay={0}
-                      />
-                      <MiniScoreBar
-                        label="Consistency"
-                        score={MOCK.scores.consistency}
-                        delay={0.1}
-                      />
-                      <MiniScoreBar
-                        label="Impact"
-                        score={MOCK.scores.impact}
-                        delay={0.2}
-                      />
-                      <MiniScoreBar
-                        label="Documentation"
-                        score={MOCK.scores.documentation}
-                        delay={0.3}
-                      />
-                      <MiniScoreBar
-                        label="Testing"
-                        score={MOCK.scores.testing}
-                        delay={0.4}
-                      />
-                    </div>
-                  </GlassCard>
-
-                  {/* Panel 6 — Activity Chart (full width) */}
-                  <GlassCard
-                    className="md:col-span-2 min-h-[240px]"
-                    variants={fadeUp}
+                  <motion.div
+                    key="results"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    variants={stagger}
+                    initial="hidden"
+                    animate="visible"
                   >
-                    <ActivityChart data={MOCK.activity} />
-                  </GlassCard>
+                    {/* Panel 1 — Overall Score */}
+                    <GlassCard
+                      className="flex flex-col items-center justify-center py-8"
+                      variants={fadeUp}
+                    >
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4">
+                        Overall Hiring Score
+                      </span>
+                      <ScoreRing score={MOCK.overallScore} size={170} />
+                    </GlassCard>
 
-                  {/* Panel 7 — Technical Highlights */}
-                  <GlassCard variants={fadeUp}>
-                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4 block">
-                      Technical Highlights
-                    </span>
-                    <ul className="space-y-3">
-                      {MOCK.highlights.map((h, i) => (
-                        <motion.li
-                          key={h}
-                          className="flex items-start gap-2.5 text-sm text-text-secondary leading-relaxed"
-                          initial={{ opacity: 0, x: -12 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 1.2 + i * 0.12 }}
-                        >
-                          <TrendingUp
-                            size={14}
-                            className="text-teal mt-0.5 shrink-0"
-                          />
-                          {h}
-                        </motion.li>
-                      ))}
-                    </ul>
-                  </GlassCard>
+                    {/* Panel 2 — Hiring Recommendation */}
+                    <GlassCard className="py-8" variants={fadeUp}>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-2 block text-center">
+                        Hiring Decision
+                      </span>
+                      <HiringBadge
+                        verdict={MOCK.verdict}
+                        reasoning={MOCK.verdictReasoning}
+                      />
+                    </GlassCard>
 
-                  {/* Panel 8 — Growth Areas */}
-                  <GlassCard variants={fadeUp}>
-                    <StrengthsList
-                      items={MOCK.weaknesses}
-                      title="Growth Areas"
-                      accentColor="var(--amber)"
-                    />
-                  </GlassCard>
-                </motion.div>
+                    {/* Panel 3 — Top Strengths */}
+                    <GlassCard variants={fadeUp}>
+                      <StrengthsList
+                        items={MOCK.strengths}
+                        title="Top Strengths"
+                        accentColor="var(--teal)"
+                      />
+                    </GlassCard>
+
+                    {/* Panel 4 — Code Quality Radar */}
+                    <GlassCard className="min-h-[260px]" variants={fadeUp}>
+                      <SkillRadar data={MOCK.skills} />
+                    </GlassCard>
+
+                    {/* Panel 5 — Score Breakdown (full width) */}
+                    <GlassCard className="md:col-span-2" variants={fadeUp}>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4 block">
+                        Score Breakdown
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+                        <MiniScoreBar
+                          label="Code Quality"
+                          score={MOCK.scores.codeQuality}
+                          delay={0}
+                        />
+                        <MiniScoreBar
+                          label="Consistency"
+                          score={MOCK.scores.consistency}
+                          delay={0.1}
+                        />
+                        <MiniScoreBar
+                          label="Impact"
+                          score={MOCK.scores.impact}
+                          delay={0.2}
+                        />
+                        <MiniScoreBar
+                          label="Documentation"
+                          score={MOCK.scores.documentation}
+                          delay={0.3}
+                        />
+                        <MiniScoreBar
+                          label="Testing"
+                          score={MOCK.scores.testing}
+                          delay={0.4}
+                        />
+                      </div>
+                    </GlassCard>
+
+                    {/* Panel 6 — Activity Chart (full width) */}
+                    <GlassCard
+                      className="md:col-span-2 min-h-[240px]"
+                      variants={fadeUp}
+                    >
+                      <ActivityChart data={MOCK.activity} />
+                    </GlassCard>
+
+                    {/* Panel 7 — Technical Highlights */}
+                    <GlassCard variants={fadeUp}>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4 block">
+                        Technical Highlights
+                      </span>
+                      <ul className="space-y-3">
+                        {MOCK.highlights.map((h, i) => (
+                          <motion.li
+                            key={h}
+                            className="flex items-start gap-2.5 text-sm text-text-secondary leading-relaxed"
+                            initial={{ opacity: 0, x: -12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 1.2 + i * 0.12 }}
+                          >
+                            <TrendingUp
+                              size={14}
+                              className="text-teal mt-0.5 shrink-0"
+                            />
+                            {h}
+                          </motion.li>
+                        ))}
+                      </ul>
+                    </GlassCard>
+
+                    {/* Panel 8 — Growth Areas */}
+                    <GlassCard variants={fadeUp}>
+                      <StrengthsList
+                        items={MOCK.weaknesses}
+                        title="Growth Areas"
+                        accentColor="var(--amber)"
+                      />
+                    </GlassCard>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </div>
