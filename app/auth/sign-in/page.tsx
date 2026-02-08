@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LogIn, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
@@ -8,7 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
@@ -165,5 +165,21 @@ export default function SignInPage() {
         </div>
       </motion.div>
     </main>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen relative flex items-center justify-center px-6">
+          <div className="relative z-10 w-full max-w-[400px] animate-pulse">
+            <div className="glass rounded-2xl p-6 h-[320px]" />
+          </div>
+        </main>
+      }
+    >
+      <SignInForm />
+    </Suspense>
   );
 }

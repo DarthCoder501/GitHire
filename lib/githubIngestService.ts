@@ -1,6 +1,11 @@
-import { GithubRepo, RepoContent, FileContent, GithubIngestResult } from '@/types/github';
+import {
+  GithubRepo,
+  RepoContent,
+  FileContent,
+  GithubIngestResult,
+} from "../types/github";
 
-const GITHUB_API_BASE = 'https://api.github.com';
+const GITHUB_API_BASE = "https://api.github.com";
 
 /**
  * Fetch paginated data from GitHub API without authentication
@@ -9,13 +14,15 @@ const GITHUB_API_BASE = 'https://api.github.com';
 async function fetchFromGitHub<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'GitHire-Ingest',
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "GitHire-Ingest",
     },
   });
 
   if (!res.ok) {
-    throw new Error(`GitHub API error: ${res.status} ${res.statusText} - ${url}`);
+    throw new Error(
+      `GitHub API error: ${res.status} ${res.statusText} - ${url}`,
+    );
   }
 
   return res.json() as Promise<T>;
@@ -52,9 +59,9 @@ async function fetchUserRepositories(username: string): Promise<GithubRepo[]> {
 async function fetchRepositoryContents(
   owner: string,
   repo: string,
-  path: string = '',
+  path: string = "",
   depth: number = 0,
-  maxDepth: number = 2
+  maxDepth: number = 2,
 ): Promise<RepoContent[]> {
   if (depth > maxDepth) {
     return [];
@@ -76,19 +83,19 @@ async function fetchRepositoryContents(
       results.push({
         name: item.name,
         path: item.path,
-        type: item.type === 'dir' ? 'dir' : 'file',
+        type: item.type === "dir" ? "dir" : "file",
         size: item.size || undefined,
       });
 
       // Recursively fetch directory contents
-      if (item.type === 'dir' && depth < maxDepth) {
+      if (item.type === "dir" && depth < maxDepth) {
         try {
           const nestedContents = await fetchRepositoryContents(
             owner,
             repo,
             item.path,
             depth + 1,
-            maxDepth
+            maxDepth,
           );
           results.push(...nestedContents);
         } catch (err) {
@@ -101,7 +108,10 @@ async function fetchRepositoryContents(
     return results;
   } catch (err) {
     // Return empty if root contents can't be fetched
-    console.warn(`Failed to fetch repository contents for ${owner}/${repo}:`, err);
+    console.warn(
+      `Failed to fetch repository contents for ${owner}/${repo}:`,
+      err,
+    );
     return [];
   }
 }
@@ -110,8 +120,8 @@ async function fetchRepositoryContents(
  * Check if file extension is supported for content fetching
  */
 function isSupportedFileType(filename: string): boolean {
-  const supportedExtensions = ['.js', '.ts', '.tsx', '.json', '.md', '.txt'];
-  const extension = filename.substring(filename.lastIndexOf('.')).toLowerCase();
+  const supportedExtensions = [".js", ".ts", ".tsx", ".json", ".md", ".txt"];
+  const extension = filename.substring(filename.lastIndexOf(".")).toLowerCase();
   return supportedExtensions.includes(extension);
 }
 
@@ -124,24 +134,26 @@ async function fetchFileContent(
   owner: string,
   repo: string,
   path: string,
-  maxSizeBytes: number = 102400 // 100kb default limit
+  maxSizeBytes: number = 102400, // 100kb default limit
 ): Promise<string | null> {
   try {
     const url = `${GITHUB_API_BASE}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(path)}`;
-    
+
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/vnd.github.v3+json',
-        'User-Agent': 'GitHire-Ingest',
+        Accept: "application/vnd.github.v3+json",
+        "User-Agent": "GitHire-Ingest",
       },
     });
 
     if (!response.ok) {
-      console.warn(`Failed to fetch file ${path}: ${response.status} ${response.statusText}`);
+      console.warn(
+        `Failed to fetch file ${path}: ${response.status} ${response.statusText}`,
+      );
       return null;
     }
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
 
     // Check if content exists
     if (!data.content) {
@@ -156,10 +168,10 @@ async function fetchFileContent(
     }
 
     // Decode base64 content if encoding is base64
-    let decodedContent = '';
-    if (data.encoding === 'base64') {
+    let decodedContent = "";
+    if (data.encoding === "base64") {
       try {
-        decodedContent = Buffer.from(data.content, 'base64').toString('utf-8');
+        decodedContent = Buffer.from(data.content, "base64").toString("utf-8");
       } catch (decodeErr) {
         console.warn(`Failed to decode base64 content for ${path}:`, decodeErr);
         return null;
@@ -189,7 +201,7 @@ async function fetchFileContent(
 async function fetchRepositoryFileContents(
   owner: string,
   repo: string,
-  maxFiles: number = 20
+  maxFiles: number = 20,
 ): Promise<FileContent[]> {
   try {
     // Get all contents first
@@ -197,7 +209,7 @@ async function fetchRepositoryFileContents(
 
     // Filter for files only with supported extensions
     const supportedFiles = allContents.filter(
-      (item) => item.type === 'file' && isSupportedFileType(item.name)
+      (item) => item.type === "file" && isSupportedFileType(item.name),
     );
 
     // Limit to maxFiles
@@ -210,9 +222,9 @@ async function fetchRepositoryFileContents(
       const fileContent: FileContent = {
         name: file.name,
         path: file.path,
-        type: 'file',
+        type: "file",
         size: file.size,
-        content: content || '', // Empty string if fetch failed
+        content: content || "", // Empty string if fetch failed
       };
 
       return fileContent;
@@ -225,7 +237,10 @@ async function fetchRepositoryFileContents(
     // Alternatively, keep them with empty content for transparency
     return fileContents;
   } catch (err) {
-    console.warn(`Failed to fetch repository file contents for ${owner}/${repo}:`, err);
+    console.warn(
+      `Failed to fetch repository file contents for ${owner}/${repo}:`,
+      err,
+    );
     return [];
   }
 }
@@ -234,7 +249,9 @@ async function fetchRepositoryFileContents(
  * Main ingestion function
  * Fetches user repos and their file structures, returns structured result
  */
-export async function ingestGithubUser(username: string): Promise<GithubIngestResult> {
+export async function ingestGithubUser(
+  username: string,
+): Promise<GithubIngestResult> {
   const startTime = Date.now();
 
   try {
@@ -267,11 +284,13 @@ export async function ingestGithubUser(username: string): Promise<GithubIngestRe
       timestamp: new Date().toISOString(),
       repos: reposWithContents,
       totalReposProcessed: reposWithContents.length,
-      status: 'success',
+      status: "success",
     };
 
     const endTime = Date.now();
-    console.log(`Ingestion completed for ${username} in ${endTime - startTime}ms`);
+    console.log(
+      `Ingestion completed for ${username} in ${endTime - startTime}ms`,
+    );
 
     return result;
   } catch (err: any) {
@@ -282,8 +301,8 @@ export async function ingestGithubUser(username: string): Promise<GithubIngestRe
       timestamp: new Date().toISOString(),
       repos: [],
       totalReposProcessed: 0,
-      status: 'failed',
-      message: err?.message || 'Unknown error during ingestion',
+      status: "failed",
+      message: err?.message || "Unknown error during ingestion",
     };
   }
 }
