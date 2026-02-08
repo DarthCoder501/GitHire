@@ -114,14 +114,14 @@ export default function ComparePage() {
           </h1>
         </div>
 
-        <p className="text-sm text-text-secondary mb-8 max-w-lg">
+        <p className="text-sm text-text-secondary mb-8 max-w-2xl">
           Enter two GitHub usernames to generate a side-by-side hiring
           comparison. Both candidates must have existing reports in your
           account.
         </p>
 
         {/* Input section */}
-        <div className="max-w-2xl">
+        <div className="w-full">
           <GlassCard className="mb-6">
             <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-end">
               {/* Candidate A */}
@@ -244,35 +244,41 @@ export default function ComparePage() {
                   </motion.div>
                 )}
 
-                {/* Summary */}
-                <GlassCard variants={fadeUp}>
-                  <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-3 block">
-                    Executive Summary
-                  </span>
-                  <p className="text-sm text-text-secondary leading-relaxed">
-                    {result.summary || "—"}
-                  </p>
-                </GlassCard>
-
-                {/* Winner */}
-                <GlassCard variants={fadeUp} className="text-center py-8">
-                  <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4 block">
-                    Winner
-                  </span>
-                  <div className="flex items-center justify-center gap-3 mb-3">
-                    {result.winner === "tie" ? (
-                      <Minus size={24} className="text-amber" />
-                    ) : (
-                      <Trophy size={24} className="text-teal" />
-                    )}
-                    <span className="text-2xl font-bold text-text-primary">
-                      {result.winner === "tie" ? "Tie" : `@${result.winner}`}
+                {/* Summary + Winner row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Summary */}
+                  <GlassCard variants={fadeUp}>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-3 block">
+                      Executive Summary
                     </span>
-                  </div>
-                  <p className="text-xs text-text-secondary max-w-md mx-auto">
-                    {result.winnerReason || "—"}
-                  </p>
-                </GlassCard>
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                      {result.summary || "—"}
+                    </p>
+                  </GlassCard>
+
+                  {/* Winner */}
+                  <GlassCard
+                    variants={fadeUp}
+                    className="text-center py-8 flex flex-col items-center justify-center"
+                  >
+                    <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4 block">
+                      Winner
+                    </span>
+                    <div className="flex items-center justify-center gap-3 mb-3">
+                      {result.winner === "tie" ? (
+                        <Minus size={24} className="text-amber" />
+                      ) : (
+                        <Trophy size={24} className="text-teal" />
+                      )}
+                      <span className="text-2xl font-bold text-text-primary">
+                        {result.winner === "tie" ? "Tie" : `@${result.winner}`}
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-secondary max-w-md mx-auto">
+                      {result.winnerReason || "—"}
+                    </p>
+                  </GlassCard>
+                </div>
 
                 {/* Category Breakdown */}
                 {result.categories && result.categories.length > 0 && (

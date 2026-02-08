@@ -4,11 +4,13 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Home,
-  MessageSquare,
+  History,
   GitCompareArrows,
+  Briefcase,
   LogIn,
   LogOut,
   User,
+  UserCircle,
   Menu,
   X,
 } from "lucide-react";
@@ -20,8 +22,10 @@ import { createClient } from "@/lib/supabase/client";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/chats", label: "Chats", icon: MessageSquare, auth: true },
+  { href: "/chats", label: "Past Searches", icon: History, auth: true },
   { href: "/compare", label: "Compare", icon: GitCompareArrows, auth: true },
+  { href: "/match", label: "Job Match", icon: Briefcase, auth: true },
+  { href: "/account", label: "Account", icon: UserCircle, auth: true },
 ];
 
 export function NavHeader() {
@@ -92,9 +96,17 @@ export function NavHeader() {
           <div className="w-8 h-8 rounded-xl bg-white/[0.03] animate-pulse" />
         ) : user ? (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-teal/10 border border-teal/20 flex items-center justify-center">
+            <Link
+              href="/account"
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                pathname === "/account"
+                  ? "bg-teal/10 border border-teal/20"
+                  : "bg-teal/10 border border-teal/20 hover:border-teal/40 hover:shadow-[0_0_12px_rgba(0,229,176,0.15)]"
+              }`}
+              aria-label="Account"
+            >
               <User size={14} className="text-teal" />
-            </div>
+            </Link>
             <button
               onClick={handleSignOut}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs text-text-tertiary hover:text-red transition-colors"

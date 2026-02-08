@@ -108,16 +108,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── 5. Groq analysis ───────────────────────────────────────────────────
+    // ── 5. Fetch user preferences (optional) ──────────────────────────────
+    let preferences:
+      | { role_level?: string | null; focus?: string | null }
+      | undefined;
+    const auth = await resolveUser(request);
+    if (auth) {
+      try {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (url && anonKey) {
+          const supabase = createClient(url, anonKey, {
+            global: {
+              headers: { Authorization: `Bearer ${auth.accessToken}` },
+            },
+          });
+          const { data: prefs } = await supabase
+            .from("user_preferences")
+            .select("role_level, focus")
+            .eq("user_id", auth.userId)
+            .single();
+          if (prefs) preferences = prefs;
+        }
+      } catch {
+        // Preferences are optional — don't fail the pipeline
+      }
+    }
+
+    // ── 6. Groq analysis ───────────────────────────────────────────────────
     console.log("[analyze] Sending to Groq …");
-    const report = await analyzeWithGroq(profile, summaries);
+    const report = await analyzeWithGroq(profile, summaries, preferences);
 
     console.log(
       `[analyze] Done — overall score ${report.overallScore}, verdict "${report.verdict}"`,
     );
 
     // ── If signed in, save report + chat to Supabase (for Compare and Chats) ─
-    const auth = await resolveUser(request);
+    // (auth was resolved above for preferences; reuse it)
     if (auth) {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

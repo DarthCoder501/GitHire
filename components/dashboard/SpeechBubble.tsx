@@ -47,6 +47,7 @@ export function SpeechBubble({
   // Refs for timers so we can cancel cleanly
   const charTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const charIndexRef = useRef(0);
+  const textContainerRef = useRef<HTMLDivElement>(null);
 
   // Memoize the audio manager so we only get it once
   const mgr = useMemo(() => {
@@ -157,6 +158,14 @@ export function SpeechBubble({
     startTypewriter(text, dur);
   }, [mgr, text, startTypewriter]);
 
+  /* ── Auto-scroll text container as typewriter progresses ── */
+  useEffect(() => {
+    if (textContainerRef.current) {
+      textContainerRef.current.scrollTop =
+        textContainerRef.current.scrollHeight;
+    }
+  }, [displayedText]);
+
   /* ── Reduced motion: instant display ── */
   useEffect(() => {
     if (prefersReduced && bubbleState === "speaking") {
@@ -229,8 +238,11 @@ export function SpeechBubble({
             </div>
           </div>
 
-          {/* Text content */}
-          <div className="min-h-[48px]">
+          {/* Text content — scrollable for long text */}
+          <div
+            ref={textContainerRef}
+            className="min-h-[48px] max-h-[180px] overflow-y-auto scrollbar-thin"
+          >
             {bubbleState === "thinking" && (
               <motion.div
                 className="flex items-center gap-1.5"

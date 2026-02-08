@@ -147,6 +147,30 @@ create policy "Users can delete own comparisons"
   using (auth.uid() = user_id);
 
 
+-- ─── User Preferences (Role & Level Targeting) ─── --
+-- Optional hiring preferences per user.
+create table if not exists public.user_preferences (
+  user_id uuid references auth.users(id) on delete cascade primary key,
+  role_level text check (role_level in ('junior', 'mid', 'senior', 'staff') or role_level is null),
+  focus text check (focus in ('frontend', 'backend', 'fullstack', 'devops', 'ai-ml') or focus is null),
+  updated_at timestamptz default now() not null
+);
+
+alter table public.user_preferences enable row level security;
+
+create policy "Users can read own preferences"
+  on public.user_preferences for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own preferences"
+  on public.user_preferences for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own preferences"
+  on public.user_preferences for update
+  using (auth.uid() = user_id);
+
+
 -- ─── Auto-update updated_at ─── --
 create or replace function public.handle_updated_at()
 returns trigger as $$
@@ -162,4 +186,8 @@ create trigger reports_updated_at
 
 create trigger chats_updated_at
   before update on public.chats
+  for each row execute function public.handle_updated_at();
+
+create trigger user_preferences_updated_at
+  before update on public.user_preferences
   for each row execute function public.handle_updated_at();

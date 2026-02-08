@@ -3,29 +3,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  MessageSquare,
+  History,
   Github,
   Clock,
   ChevronRight,
-  User,
-  Bot,
   ArrowLeft,
+  AlertCircle,
+  Search,
 } from "lucide-react";
 import { GlassCard } from "@/components/dashboard/GlassCard";
+import { ReportView } from "@/components/dashboard/ReportView";
 import { NavHeader } from "@/components/NavHeader";
 import { createClient } from "@/lib/supabase/client";
+import type { HiringReport } from "@/lib/types/report";
 
 interface ChatItem {
   id: string;
   candidate_username: string;
   updated_at: string;
-  created_at: string;
-}
-
-interface Message {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
   created_at: string;
 }
 
@@ -54,12 +49,13 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
-export default function ChatsPage() {
+export default function PastSearchesPage() {
   const [chats, setChats] = useState<ChatItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [report, setReport] = useState<HiringReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   const fetchChats = useCallback(async () => {
     try {
@@ -78,7 +74,7 @@ export default function ChatsPage() {
         setChats(data.chats || []);
       }
     } catch (err) {
-      console.error("Failed to fetch chats:", err);
+      console.error("Failed to fetch past searches:", err);
     } finally {
       setLoading(false);
     }
@@ -88,9 +84,11 @@ export default function ChatsPage() {
     fetchChats();
   }, [fetchChats]);
 
-  const loadMessages = useCallback(async (chat: ChatItem) => {
+  const openSearch = useCallback(async (chat: ChatItem) => {
     setSelectedChat(chat);
-    setMessagesLoading(true);
+    setReport(null);
+    setReportError(null);
+    setReportLoading(true);
 
     try {
       const supabase = createClient();
@@ -99,18 +97,32 @@ export default function ChatsPage() {
       } = await supabase.auth.getSession();
       if (!session) return;
 
-      const res = await fetch(`/api/chats/${chat.id}/messages`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const res = await fetch(
+        `/api/reports?username=${encodeURIComponent(chat.candidate_username)}`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } },
+      );
 
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        if (data.report) {
+          setReport(data.report as HiringReport);
+        } else {
+          setReportError(
+            "No saved report found for this candidate. Run a new analysis from the home page to generate one.",
+          );
+        }
+      } else if (res.status === 404) {
+        setReportError(
+          "No saved report found for this candidate. Run a new analysis from the home page to generate one.",
+        );
+      } else {
+        setReportError("Failed to load report.");
       }
     } catch (err) {
-      console.error("Failed to fetch messages:", err);
+      console.error("Failed to fetch report:", err);
+      setReportError("Failed to load report.");
     } finally {
-      setMessagesLoading(false);
+      setReportLoading(false);
     }
   }, []);
 
@@ -127,9 +139,9 @@ export default function ChatsPage() {
 
         <AnimatePresence mode="wait">
           {selectedChat ? (
-            /* ── Message View ── */
+            /* ── Report Detail View ── */
             <motion.div
-              key="messages"
+              key="detail"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -139,15 +151,16 @@ export default function ChatsPage() {
               <button
                 onClick={() => {
                   setSelectedChat(null);
-                  setMessages([]);
+                  setReport(null);
+                  setReportError(null);
                 }}
                 className="flex items-center gap-2 text-sm text-text-secondary hover:text-teal transition-colors mb-6"
               >
                 <ArrowLeft size={16} />
-                Back to chats
+                Back to past searches
               </button>
 
-              {/* Chat header */}
+              {/* Candidate header */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-teal/10 border border-teal/20 flex items-center justify-center">
                   <Github size={18} className="text-teal" />
@@ -157,71 +170,42 @@ export default function ChatsPage() {
                     @{selectedChat.candidate_username}
                   </h2>
                   <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary">
-                    Conversation History
+                    Hiring Report
                   </p>
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="space-y-3 max-w-3xl">
-                {messagesLoading ? (
-                  <div className="flex items-center gap-2 py-12 justify-center">
-                    <div className="w-4 h-4 border-2 border-teal/30 border-t-teal rounded-full animate-spin" />
-                    <span className="text-xs text-text-tertiary font-mono">
-                      Loading messages...
-                    </span>
-                  </div>
-                ) : messages.length === 0 ? (
-                  <GlassCard className="text-center py-12">
-                    <MessageSquare
-                      size={32}
-                      className="text-text-tertiary mx-auto mb-3"
-                    />
-                    <p className="text-sm text-text-tertiary">
-                      No messages in this conversation yet.
-                    </p>
-                  </GlassCard>
-                ) : (
-                  messages
-                    .filter((m) => m.role !== "system")
-                    .map((msg, i) => (
-                      <motion.div
-                        key={msg.id}
-                        className={`flex items-start gap-3 ${
-                          msg.role === "user" ? "justify-end" : ""
-                        }`}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                      >
-                        {msg.role === "assistant" && (
-                          <div className="w-7 h-7 rounded-lg bg-teal/10 border border-teal/20 flex items-center justify-center shrink-0 mt-0.5">
-                            <Bot size={13} className="text-teal" />
-                          </div>
-                        )}
-                        <div
-                          className={`glass rounded-2xl px-4 py-3 max-w-[80%] ${
-                            msg.role === "user"
-                              ? "bg-teal/10 border-teal/20"
-                              : ""
-                          }`}
-                        >
-                          <p className="text-[13px] leading-relaxed text-text-secondary">
-                            {msg.content}
-                          </p>
-                        </div>
-                        {msg.role === "user" && (
-                          <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0 mt-0.5">
-                            <User size={13} className="text-text-tertiary" />
-                          </div>
-                        )}
-                      </motion.div>
-                    ))
-                )}
-              </div>
+              {/* Report content */}
+              {reportLoading ? (
+                <div className="flex items-center gap-2 py-16 justify-center">
+                  <div className="w-4 h-4 border-2 border-teal/30 border-t-teal rounded-full animate-spin" />
+                  <span className="text-xs text-text-tertiary font-mono">
+                    Loading report...
+                  </span>
+                </div>
+              ) : reportError ? (
+                <GlassCard className="text-center py-12">
+                  <AlertCircle
+                    size={32}
+                    className="text-text-tertiary mx-auto mb-3"
+                  />
+                  <p className="text-sm text-text-secondary mb-4 max-w-md mx-auto">
+                    {reportError}
+                  </p>
+                  <a
+                    href="/"
+                    className="inline-flex items-center gap-2 text-sm text-teal hover:text-teal/80 transition-colors"
+                  >
+                    <Search size={14} />
+                    Go to Analyze
+                  </a>
+                </GlassCard>
+              ) : report ? (
+                <ReportView report={report} />
+              ) : null}
             </motion.div>
           ) : (
-            /* ── Chat List ── */
+            /* ── Past Searches List ── */
             <motion.div
               key="list"
               initial={{ opacity: 0 }}
@@ -229,19 +213,19 @@ export default function ChatsPage() {
               exit={{ opacity: 0 }}
             >
               <div className="flex items-center gap-3 mb-6">
-                <MessageSquare size={20} className="text-teal" />
+                <History size={20} className="text-teal" />
                 <h1 className="text-xl font-semibold text-text-primary">
-                  Your Chats
+                  Past Searches
                 </h1>
               </div>
 
               <p className="text-sm text-text-secondary mb-8 max-w-lg">
-                Your conversation history with analyzed candidates. Each chat is
-                a separate thread per GitHub user you&apos;ve discussed.
+                Your previous GitHub profile analyses. Select one to view the
+                full hiring report.
               </p>
 
               {loading ? (
-                <div className="space-y-3">
+                <div className="space-y-3 max-w-2xl">
                   {[1, 2, 3].map((i) => (
                     <div
                       key={i}
@@ -253,13 +237,13 @@ export default function ChatsPage() {
                   ))}
                 </div>
               ) : chats.length === 0 ? (
-                <GlassCard className="text-center py-16">
+                <GlassCard className="text-center py-16 max-w-xl">
                   <div className="w-16 h-16 rounded-2xl glass flex items-center justify-center mx-auto mb-4">
-                    <MessageSquare size={28} className="text-text-tertiary" />
+                    <History size={28} className="text-text-tertiary" />
                   </div>
                   <p className="text-sm text-text-tertiary max-w-[280px] mx-auto leading-relaxed">
-                    No conversations yet. Analyze a GitHub profile and start a
-                    conversation to see it here.
+                    No past searches yet. Analyze a GitHub profile from the home
+                    page to see it here.
                   </p>
                 </GlassCard>
               ) : (
@@ -274,7 +258,7 @@ export default function ChatsPage() {
                       key={chat.id}
                       className="cursor-pointer group"
                       variants={fadeUp}
-                      onClick={() => loadMessages(chat)}
+                      onClick={() => openSearch(chat)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">

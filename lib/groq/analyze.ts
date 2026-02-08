@@ -135,9 +135,15 @@ async function callGroqWithRetry(
   throw new Error("Groq API: max retries exceeded");
 }
 
+export interface HiringPreferences {
+  role_level?: string | null;
+  focus?: string | null;
+}
+
 export async function analyzeWithGroq(
   profile: GitHubProfile,
   summaries: RepoSummary[],
+  preferences?: HiringPreferences,
 ): Promise<HiringReport> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
@@ -146,10 +152,37 @@ export async function analyzeWithGroq(
 
   const userContent = buildUserPayload(profile, summaries);
 
+  // Build system prompt, optionally appending role/level targeting context
+  let systemPrompt = SYSTEM_PROMPT;
+  if (preferences?.role_level || preferences?.focus) {
+    const parts: string[] = [];
+    if (preferences.role_level) {
+      const label =
+        preferences.role_level === "ai-ml"
+          ? "AI/ML"
+          : preferences.role_level.charAt(0).toUpperCase() +
+            preferences.role_level.slice(1);
+      parts.push(`target role level is **${label}**`);
+    }
+    if (preferences.focus) {
+      const focusLabels: Record<string, string> = {
+        frontend: "Frontend",
+        backend: "Backend",
+        fullstack: "Full-stack",
+        devops: "DevOps",
+        "ai-ml": "AI/ML",
+      };
+      parts.push(
+        `target focus area is **${focusLabels[preferences.focus] || preferences.focus}**`,
+      );
+    }
+    systemPrompt += `\n\nIMPORTANT: The hiring manager's ${parts.join(" and ")}. Tailor your evaluation, scoring, and hiring recommendation to these requirements. A candidate who is a great Junior hire may not be a great Senior hire, and vice versa. Similarly, weight skills relevant to the specified focus area more heavily.`;
+  }
+
   const body = {
     model: "llama-3.3-70b-versatile",
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: systemPrompt },
       {
         role: "user",
         content: `Analyze the following GitHub profile and repositories:\n\n${userContent}`,
