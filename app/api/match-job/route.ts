@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Look up stored report for this candidate
+  let reportPayload: Record<string, unknown> | null = null;
   const { data: reportRow } = await auth.supabase
     .from("reports")
     .select("payload")
@@ -52,19 +53,59 @@ export async function POST(request: NextRequest) {
     .eq("candidate_username", candidateUsername.toLowerCase())
     .single();
 
-  if (!reportRow) {
-    return NextResponse.json(
-      {
-        error: `No saved report found for @${candidateUsername}. Run an analysis first from the home page.`,
+  if (reportRow) {
+    reportPayload = reportRow.payload as Record<string, unknown>;
+  }
+
+  // If no saved report, run the full analysis pipeline (analyze saves the report when signed in)
+  if (!reportPayload) {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : `${request.headers.get("x-forwarded-proto") || "http"}://${request.headers.get("host")}`;
+    const analyzeUrl = `${baseUrl}/api/analyze`;
+    const authHeader = request.headers.get("authorization");
+
+    const analyzeRes = await fetch(analyzeUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authHeader ? { Authorization: authHeader } : {}),
       },
-      { status: 404 },
-    );
+      body: JSON.stringify({ username: candidateUsername.trim() }),
+    });
+
+    const analyzeData = await analyzeRes.json().catch(() => ({}));
+
+    if (!analyzeRes.ok) {
+      const message =
+        typeof analyzeData.error === "string"
+          ? analyzeData.error
+          : analyzeRes.status === 404
+            ? "GitHub user not found"
+            : analyzeRes.status === 429
+              ? "GitHub rate limit exceeded. Try again later or add a GitHub token in settings."
+              : analyzeRes.status === 502
+                ? "Analysis service temporarily unavailable. Please try again."
+                : "Analysis failed";
+      return NextResponse.json(
+        { error: message },
+        { status: analyzeRes.status },
+      );
+    }
+
+    if (analyzeData.report) {
+      reportPayload = analyzeData.report as Record<string, unknown>;
+    }
+    if (!reportPayload) {
+      return NextResponse.json(
+        { error: "Analysis did not return a report" },
+        { status: 502 },
+      );
+    }
   }
 
   // Generate match using LLM
   try {
-    const reportPayload = reportRow.payload as Record<string, unknown>;
-
     const prompt = `You are a Senior Technical Recruiter AI. Compare a candidate's GitHub hiring report against a job description and produce a structured match assessment.
 
 ## Candidate Report (@${candidateUsername})

@@ -123,9 +123,8 @@ export default function MatchPage() {
         </div>
 
         <p className="text-sm text-text-secondary mb-8 max-w-2xl">
-          See how well a candidate&apos;s GitHub profile matches a specific job
-          description. The candidate must have an existing report in your
-          account.
+          Enter any GitHub username and a job description; we&apos;ll analyze
+          the profile if needed and show how well they match.
         </p>
 
         {/* Input section */}
