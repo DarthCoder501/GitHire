@@ -66,19 +66,51 @@ export default function ComparePage() {
         return;
       }
 
-      const res = await fetch("/api/compare", {
+      const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      };
+
+      let res = await fetch("/api/compare", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers,
         body: JSON.stringify({
           candidateA: candidateA.trim(),
           candidateB: candidateB.trim(),
         }),
       });
 
-      const data = await res.json();
+      let data = await res.json();
+
+      // If reports are missing, run analysis for each missing candidate, then compare again
+      if (res.status === 404 && Array.isArray(data.missingReports)) {
+        for (const username of data.missingReports) {
+          const analyzeRes = await fetch("/api/analyze", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ username }),
+          });
+          if (!analyzeRes.ok) {
+            const errData = await analyzeRes.json().catch(() => ({}));
+            setError(
+              errData.error ||
+                `Failed to analyze @${username}. Please try again.`,
+            );
+            setLoading(false);
+            return;
+          }
+        }
+        // Retry compare — both reports now exist; comparison will be saved
+        res = await fetch("/api/compare", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            candidateA: candidateA.trim(),
+            candidateB: candidateB.trim(),
+          }),
+        });
+        data = await res.json();
+      }
 
       if (!res.ok) {
         setError(data.error || "Comparison failed");
@@ -116,8 +148,9 @@ export default function ComparePage() {
 
         <p className="text-sm text-text-secondary mb-8 max-w-2xl">
           Enter two GitHub usernames to generate a side-by-side hiring
-          comparison. Both candidates must have existing reports in your
-          account.
+          comparison. If either candidate doesn&apos;t have a report yet,
+          we&apos;ll run the analysis for them first, then compare and save both
+          reports.
         </p>
 
         {/* Input section */}

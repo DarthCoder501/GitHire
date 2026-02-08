@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  User,
   Mail,
   History,
   GitCompareArrows,
@@ -13,7 +12,10 @@ import {
   Home,
   Target,
   Check,
+  Key,
+  X,
 } from "lucide-react";
+import Image from "next/image";
 import { GlassCard } from "@/components/dashboard/GlassCard";
 import { NavHeader } from "@/components/NavHeader";
 import { useUser } from "@/lib/supabase/hooks";
@@ -73,6 +75,13 @@ export default function AccountPage() {
   const [prefsSaved, setPrefsSaved] = useState(false);
   const [prefsLoading, setPrefsLoading] = useState(true);
 
+  // GitHub token (optional — higher rate limits)
+  const [hasGithubToken, setHasGithubToken] = useState(false);
+  const [githubTokenInput, setGithubTokenInput] = useState("");
+  const [githubTokenSaving, setGithubTokenSaving] = useState(false);
+  const [githubTokenSaved, setGithubTokenSaved] = useState(false);
+  const [showTokenInput, setShowTokenInput] = useState(false);
+
   const fetchStats = useCallback(async () => {
     try {
       const supabase = createClient();
@@ -127,6 +136,7 @@ export default function AccountPage() {
         const data = await res.json();
         setRoleLevel(data.preferences?.role_level || null);
         setFocus(data.preferences?.focus || null);
+        setHasGithubToken(!!data.preferences?.hasGithubToken);
       }
     } catch (err) {
       console.error("Failed to fetch preferences:", err);
@@ -163,6 +173,71 @@ export default function AccountPage() {
       setPrefsSaving(false);
     }
   }, [roleLevel, focus]);
+
+  const saveGithubToken = useCallback(async () => {
+    setGithubTokenSaving(true);
+    setGithubTokenSaved(false);
+    try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch("/api/preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          github_token: githubTokenInput.trim() || "clear",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHasGithubToken(!!data.preferences?.hasGithubToken);
+        setGithubTokenInput("");
+        setShowTokenInput(false);
+        setGithubTokenSaved(true);
+        setTimeout(() => setGithubTokenSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error("Failed to save GitHub token:", err);
+    } finally {
+      setGithubTokenSaving(false);
+    }
+  }, [githubTokenInput]);
+
+  const clearGithubToken = useCallback(async () => {
+    setGithubTokenSaving(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const res = await fetch("/api/preferences", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ github_token: "clear" }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setHasGithubToken(!!data.preferences?.hasGithubToken);
+        setGithubTokenInput("");
+        setShowTokenInput(false);
+      }
+    } catch (err) {
+      console.error("Failed to clear GitHub token:", err);
+    } finally {
+      setGithubTokenSaving(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!userLoading && user) {
@@ -210,7 +285,15 @@ export default function AccountPage() {
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
-          <User size={20} className="text-teal" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border border-teal/20 bg-teal/10 shrink-0">
+            <Image
+              src="/robot.png"
+              alt=""
+              width={28}
+              height={28}
+              className="object-contain"
+            />
+          </div>
           <h1 className="text-xl font-semibold text-text-primary">
             Your Account
           </h1>
@@ -228,8 +311,14 @@ export default function AccountPage() {
               Account Information
             </span>
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-teal/10 border border-teal/20 flex items-center justify-center shrink-0">
-                <User size={24} className="text-teal" />
+              <div className="w-14 h-14 rounded-2xl bg-teal/10 border border-teal/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <Image
+                  src="/robot.png"
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -298,6 +387,111 @@ export default function AccountPage() {
             <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary">
               Comparisons
             </p>
+          </GlassCard>
+
+          {/* GitHub token (optional — higher rate limits) */}
+          <GlassCard className="md:col-span-2 lg:col-span-3" variants={fadeUp}>
+            <div className="flex items-center gap-2 mb-1">
+              <Key size={15} className="text-teal" />
+              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary">
+                GitHub Token
+              </span>
+            </div>
+            <p className="text-xs text-text-tertiary mb-4">
+              Optional. Set a personal access token for higher API rate limits
+              so more candidates can be analyzed. Stored securely server-side;
+              never shown after saving.
+            </p>
+            {prefsLoading ? (
+              <div className="h-12 bg-white/[0.03] rounded-xl animate-pulse" />
+            ) : (
+              <div className="space-y-4">
+                {hasGithubToken && !showTokenInput && (
+                  <p className="text-xs text-teal font-medium">
+                    Token is set. You can replace or clear it below.
+                  </p>
+                )}
+                {showTokenInput ? (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <input
+                        type="password"
+                        value={githubTokenInput}
+                        onChange={(e) => setGithubTokenInput(e.target.value)}
+                        placeholder="ghp_..."
+                        className="w-full h-12 pl-4 pr-12 rounded-xl bg-white/[0.03] border border-white/[0.06] text-sm text-text-primary placeholder:text-text-tertiary glow-ring transition-all duration-300 focus:border-teal/30 font-mono"
+                        autoComplete="off"
+                        aria-label="GitHub token"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowTokenInput(false)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-text-tertiary hover:text-text-primary min-w-[44px] min-h-[44px]"
+                        aria-label="Cancel"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <motion.button
+                        onClick={saveGithubToken}
+                        disabled={githubTokenSaving || !githubTokenInput.trim()}
+                        className="min-h-[44px] px-5 rounded-xl font-semibold text-sm flex items-center gap-2 transition-all duration-300 disabled:opacity-60"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, #00E5B0 0%, #00C49A 100%)",
+                          color: "#07080D",
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {githubTokenSaved ? (
+                          <>
+                            <Check size={15} />
+                            Saved
+                          </>
+                        ) : githubTokenSaving ? (
+                          <div className="w-4 h-4 border-2 border-[#07080D]/30 border-t-[#07080D] rounded-full animate-spin" />
+                        ) : (
+                          "Save Token"
+                        )}
+                      </motion.button>
+                      <motion.button
+                        onClick={() => {
+                          setShowTokenInput(false);
+                          setGithubTokenInput("");
+                        }}
+                        className="min-h-[44px] px-4 rounded-xl text-sm border border-white/[0.06] text-text-secondary hover:border-teal/20"
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Cancel
+                      </motion.button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    <motion.button
+                      onClick={() => setShowTokenInput(true)}
+                      className="min-h-[44px] px-5 rounded-xl font-medium text-sm flex items-center gap-2 border border-white/[0.06] text-text-secondary hover:border-teal/20 hover:text-teal transition-all"
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Key size={15} />
+                      {hasGithubToken ? "Replace Token" : "Set Token"}
+                    </motion.button>
+                    {hasGithubToken && (
+                      <motion.button
+                        onClick={clearGithubToken}
+                        disabled={githubTokenSaving}
+                        className="min-h-[44px] px-4 rounded-xl text-sm border border-white/[0.06] text-text-tertiary hover:border-red/20 hover:text-red transition-all"
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        Clear Token
+                      </motion.button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </GlassCard>
 
           {/* Role & Level Targeting */}

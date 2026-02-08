@@ -128,9 +128,15 @@ export function selectTopRepos(repos: GitHubRepo[]): GitHubRepo[] {
 export async function buildRepoSummary(
   owner: string,
   repo: GitHubRepo,
+  overrideToken?: string | null,
 ): Promise<RepoSummary> {
   // 1. Recursive tree
-  const tree = await fetchTree(owner, repo.name, repo.default_branch);
+  const tree = await fetchTree(
+    owner,
+    repo.name,
+    repo.default_branch,
+    overrideToken,
+  );
 
   // 2. Top-level directory listing
   const topLevel = tree

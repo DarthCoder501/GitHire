@@ -5,12 +5,15 @@
 
 const GITHUB_API = "https://api.github.com";
 
-function getHeaders(): Record<string, string> {
+function getHeaders(overrideToken?: string | null): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github.v3+json",
     "User-Agent": "GitHubAnalyzer/1.0",
   };
-  const token = process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN;
+  const token =
+    overrideToken ??
+    process.env.GITHUB_TOKEN ??
+    process.env.GITHUB_ACCESS_TOKEN;
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
@@ -54,8 +57,13 @@ export interface TreeEntry {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-async function githubFetch(url: string): Promise<Response> {
-  const response = await fetch(url, { headers: getHeaders() });
+async function githubFetch(
+  url: string,
+  overrideToken?: string | null,
+): Promise<Response> {
+  const response = await fetch(url, {
+    headers: getHeaders(overrideToken),
+  });
 
   if (response.status === 403) {
     const remaining = response.headers.get("x-ratelimit-remaining");
@@ -76,9 +84,13 @@ async function githubFetch(url: string): Promise<Response> {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-export async function fetchProfile(username: string): Promise<GitHubProfile> {
+export async function fetchProfile(
+  username: string,
+  overrideToken?: string | null,
+): Promise<GitHubProfile> {
   const res = await githubFetch(
     `${GITHUB_API}/users/${encodeURIComponent(username)}`,
+    overrideToken,
   );
   if (res.status === 404) {
     throw new Error(`GitHub user "${username}" not found`);
@@ -89,7 +101,10 @@ export async function fetchProfile(username: string): Promise<GitHubProfile> {
   return res.json();
 }
 
-export async function fetchRepos(username: string): Promise<GitHubRepo[]> {
+export async function fetchRepos(
+  username: string,
+  overrideToken?: string | null,
+): Promise<GitHubRepo[]> {
   const repos: GitHubRepo[] = [];
   let page = 1;
   const perPage = 100;
@@ -98,6 +113,7 @@ export async function fetchRepos(username: string): Promise<GitHubRepo[]> {
     const res = await githubFetch(
       `${GITHUB_API}/users/${encodeURIComponent(username)}/repos` +
         `?per_page=${perPage}&page=${page}&sort=updated&type=owner`,
+      overrideToken,
     );
     if (!res.ok) {
       throw new Error(`GitHub API error fetching repos: ${res.status}`);
@@ -116,11 +132,13 @@ export async function fetchTree(
   owner: string,
   repo: string,
   branch: string,
+  overrideToken?: string | null,
 ): Promise<TreeEntry[]> {
   const res = await githubFetch(
     `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(
       repo,
     )}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+    overrideToken,
   );
   // Empty repo / missing default branch
   if (res.status === 404 || res.status === 409) return [];

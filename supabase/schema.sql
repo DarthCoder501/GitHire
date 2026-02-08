@@ -147,12 +147,13 @@ create policy "Users can delete own comparisons"
   using (auth.uid() = user_id);
 
 
--- ─── User Preferences (Role & Level Targeting) ─── --
--- Optional hiring preferences per user.
+-- ─── User Preferences (Role & Level Targeting + optional GitHub token) ─── --
+-- Optional hiring preferences per user. github_token_encrypted is encrypted server-side.
 create table if not exists public.user_preferences (
   user_id uuid references auth.users(id) on delete cascade primary key,
   role_level text check (role_level in ('junior', 'mid', 'senior', 'staff') or role_level is null),
   focus text check (focus in ('frontend', 'backend', 'fullstack', 'devops', 'ai-ml') or focus is null),
+  github_token_encrypted text,
   updated_at timestamptz default now() not null
 );
 

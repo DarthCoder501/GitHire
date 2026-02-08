@@ -104,9 +104,12 @@ export function SpeechBubble({
     [isMuted, prefersReduced],
   );
 
+  // Spoken and displayed text always includes "beep boop" at the start (TTS requirement)
+  const textToSpeak = text ? `Beep boop. ${text}` : "";
+
   /* ── Main trigger: when `active` becomes true ── */
   useEffect(() => {
-    if (!active || !mgr || !text) {
+    if (!active || !mgr || !textToSpeak) {
       hardReset();
       return;
     }
@@ -123,16 +126,16 @@ export function SpeechBubble({
 
     (async () => {
       try {
-        const dur = await mgr.load(text);
+        const dur = await mgr.load(textToSpeak);
         if (cancelled) return;
 
-        // Start audio + text simultaneously
+        // Start audio + text simultaneously (spoken and displayed include "beep boop")
         mgr.play();
-        startTypewriter(text, dur);
+        startTypewriter(textToSpeak, dur);
       } catch {
         if (cancelled) return;
         // If TTS fails, fall back to text-only at a fast speed
-        startTypewriter(text, 0);
+        startTypewriter(textToSpeak, 0);
       }
     })();
 
@@ -141,7 +144,7 @@ export function SpeechBubble({
       hardReset();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, text]);
+  }, [active, textToSpeak]);
 
   /* ── Mute toggle ── */
   const handleMuteToggle = useCallback(() => {
@@ -152,11 +155,11 @@ export function SpeechBubble({
 
   /* ── Replay ── */
   const handleReplay = useCallback(() => {
-    if (!mgr || !text) return;
+    if (!mgr || !textToSpeak) return;
     mgr.replay();
     const dur = mgr.duration;
-    startTypewriter(text, dur);
-  }, [mgr, text, startTypewriter]);
+    startTypewriter(textToSpeak, dur);
+  }, [mgr, textToSpeak, startTypewriter]);
 
   /* ── Auto-scroll text container as typewriter progresses ── */
   useEffect(() => {
@@ -170,10 +173,10 @@ export function SpeechBubble({
   useEffect(() => {
     if (prefersReduced && bubbleState === "speaking") {
       if (charTimerRef.current) clearTimeout(charTimerRef.current);
-      setDisplayedText(text);
+      setDisplayedText(textToSpeak);
       setBubbleState("done");
     }
-  }, [prefersReduced, bubbleState, text]);
+  }, [prefersReduced, bubbleState, textToSpeak]);
 
   /* ── Render ── */
   if (bubbleState === "hidden") return null;

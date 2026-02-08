@@ -7,24 +7,28 @@ import {
   History,
   GitCompareArrows,
   Briefcase,
+  FileText,
   LogIn,
   LogOut,
-  User,
   UserCircle,
   Menu,
   X,
+  Sun,
+  Moon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useUser } from "@/lib/supabase/hooks";
 import { createClient } from "@/lib/supabase/client";
+import { useTheme } from "@/components/ThemeProvider";
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
   { href: "/chats", label: "Past Searches", icon: History, auth: true },
   { href: "/compare", label: "Compare", icon: GitCompareArrows, auth: true },
   { href: "/match", label: "Job Match", icon: Briefcase, auth: true },
+  { href: "/resume", label: "Resume", icon: FileText, auth: true },
   { href: "/account", label: "Account", icon: UserCircle, auth: true },
 ];
 
@@ -32,6 +36,7 @@ export function NavHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useUser();
+  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -53,15 +58,17 @@ export function NavHeader() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      {/* Logo */}
+      {/* Logo + avatar */}
       <Link href="/" className="flex items-center gap-3 shrink-0">
-        <Image
-          src="/headstarter-logo.png"
-          alt="Headstarter"
-          width={32}
-          height={32}
-          className="rounded-lg"
-        />
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden border border-teal/20 bg-teal/10 shrink-0">
+          <Image
+            src="/robot.png"
+            alt="GitHire"
+            width={24}
+            height={24}
+            className="object-contain"
+          />
+        </div>
         <span className="text-lg font-semibold tracking-tight text-gradient">
           GitHire
         </span>
@@ -91,21 +98,43 @@ export function NavHeader() {
 
         <div className="w-px h-5 bg-white/[0.06] mx-2" />
 
+        {/* Theme toggle — touch-friendly */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="w-10 h-10 min-w-[44px] min-h-[44px] rounded-xl glass flex items-center justify-center transition-all duration-300 hover:border-teal/20"
+          aria-label={
+            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+          }
+        >
+          {theme === "dark" ? (
+            <Sun size={16} className="text-text-secondary" />
+          ) : (
+            <Moon size={16} className="text-text-secondary" />
+          )}
+        </button>
+
         {/* Auth */}
         {loading ? (
-          <div className="w-8 h-8 rounded-xl bg-white/[0.03] animate-pulse" />
+          <div className="w-10 h-10 rounded-xl bg-white/[0.03] animate-pulse min-w-[44px] min-h-[44px]" />
         ) : user ? (
           <div className="flex items-center gap-2">
             <Link
               href="/account"
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300 ${
+              className={`w-10 h-10 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center overflow-hidden transition-all duration-300 border ${
                 pathname === "/account"
                   ? "bg-teal/10 border border-teal/20"
                   : "bg-teal/10 border border-teal/20 hover:border-teal/40 hover:shadow-[0_0_12px_rgba(0,229,176,0.15)]"
               }`}
               aria-label="Account"
             >
-              <User size={14} className="text-teal" />
+              <Image
+                src="/robot.png"
+                alt="Account"
+                width={28}
+                height={28}
+                className="object-contain"
+              />
             </Link>
             <button
               onClick={handleSignOut}
@@ -197,13 +226,31 @@ export function NavHeader() {
 
               <div className="h-px bg-white/[0.06] my-3" />
 
+              {/* Theme toggle — mobile */}
+              <button
+                type="button"
+                onClick={() => {
+                  toggleTheme();
+                  setMobileOpen(false);
+                }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-text-secondary min-h-[44px]"
+                aria-label={
+                  theme === "dark"
+                    ? "Switch to light mode"
+                    : "Switch to dark mode"
+                }
+              >
+                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                {theme === "dark" ? "Light mode" : "Dark mode"}
+              </button>
+
               {loading ? null : user ? (
                 <button
                   onClick={() => {
                     handleSignOut();
                     setMobileOpen(false);
                   }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-text-tertiary hover:text-red transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-text-tertiary hover:text-red transition-colors min-h-[44px]"
                 >
                   <LogOut size={16} />
                   Sign out
@@ -212,7 +259,7 @@ export function NavHeader() {
                 <Link
                   href="/auth/sign-in"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-teal"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-teal min-h-[44px] flex items-center"
                 >
                   <LogIn size={16} />
                   Sign in

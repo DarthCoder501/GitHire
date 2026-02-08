@@ -17,6 +17,7 @@ You MUST respond with ONLY a valid JSON object — no markdown fences, no explan
   "overallScore": <number 0-100>,
   "verdict": "<one of: Strong Yes | Yes | Lean Yes | No>",
   "verdictReasoning": "<string, 1-2 sentence justification>",
+  "recommendedRoles": ["<e.g. Frontend Engineer>", "<e.g. Full-stack>", …],
   "scores": {
     "codeQuality": <number 0-100>,
     "consistency": <number 0-100>,
@@ -35,6 +36,7 @@ You MUST respond with ONLY a valid JSON object — no markdown fences, no explan
 Evaluation rules:
 - Evaluate code QUALITY, architecture, design patterns, error handling — not just quantity.
 - Be critical but fair; identify genuine strengths AND weaknesses.
+- "recommendedRoles": 1-3 specific roles this candidate is best suited for (e.g. "Frontend Engineer", "Backend Engineer", "Full-stack", "DevOps Engineer"). Base on evidence in repos and skills.
 - "strengths" and "weaknesses": 3-6 items each.
 - "skills": 4-8 entries with proficiency scores (0-100).
 - "activity": exactly 12 entries for the last 12 months. Estimate commit volume from repo activity / update dates. Use recent calendar months.

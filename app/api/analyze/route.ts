@@ -10,6 +10,7 @@ import { createClient } from "@supabase/supabase-js";
 import { fetchProfile, fetchRepos } from "@/lib/github/api";
 import { selectTopRepos, buildRepoSummary } from "@/lib/github/summarize";
 import { analyzeWithGroq } from "@/lib/groq/analyze";
+import { decryptToken } from "@/lib/github/tokenEncrypt";
 import {
   getOrCreateChat,
   addChatMessage,
@@ -56,11 +57,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── 0. Optional user GitHub token (higher rate limits) ───────────────────
+    let githubToken: string | null = null;
+    const authForToken = await resolveUser(request);
+    if (authForToken) {
+      try {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        if (url && anonKey) {
+          const supabase = createClient(url, anonKey, {
+            global: {
+              headers: { Authorization: `Bearer ${authForToken.accessToken}` },
+            },
+          });
+          const { data: prefs } = await supabase
+            .from("user_preferences")
+            .select("github_token_encrypted")
+            .eq("user_id", authForToken.userId)
+            .single();
+          if (prefs?.github_token_encrypted) {
+            githubToken = await decryptToken(prefs.github_token_encrypted);
+          }
+        }
+      } catch {
+        // Use env token or unauthenticated
+      }
+    }
+    if (!githubToken) {
+      githubToken =
+        process.env.GITHUB_TOKEN || process.env.GITHUB_ACCESS_TOKEN || null;
+    }
+
     // ── 1. GitHub profile ──────────────────────────────────────────────────
     console.log(`[analyze] Fetching profile for "${username}" …`);
     let profile;
     try {
-      profile = await fetchProfile(username);
+      profile = await fetchProfile(username, githubToken);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("not found")) {
@@ -71,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     // ── 2. List repos (paginated) ──────────────────────────────────────────
     console.log("[analyze] Fetching repos …");
-    const allRepos = await fetchRepos(username);
+    const allRepos = await fetchRepos(username, githubToken);
 
     if (allRepos.length === 0) {
       return NextResponse.json(
@@ -91,7 +123,7 @@ export async function POST(request: NextRequest) {
     for (const repo of topRepos) {
       try {
         console.log(`[analyze]   → summarizing ${repo.name} …`);
-        const summary = await buildRepoSummary(username, repo);
+        const summary = await buildRepoSummary(username, repo, githubToken);
         summaries.push(summary);
       } catch (err) {
         console.warn(`[analyze]   ⚠ skipping ${repo.name}:`, err);

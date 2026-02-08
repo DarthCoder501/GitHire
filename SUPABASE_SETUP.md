@@ -1,6 +1,6 @@
 # Supabase Setup Guide (GitHire)
 
-Step-by-step instructions to set up Supabase for this project (auth, database, and env).
+Step-by-step instructions to set up Supabase for this project (auth, database, and env). The app uses Supabase for authentication (email/password and optional OAuth) and for storing reports, chats, messages, comparisons, and user preferences.
 
 ---
 
@@ -54,11 +54,12 @@ You will use these in the next step.
 4. Copy its **entire contents** and paste them into the SQL Editor.
 5. Click **Run** (or press Cmd/Ctrl + Enter).
 6. Confirm there are no errors. This creates:
-   - `reports` (with RLS)
-   - `chats` (with RLS)
-   - `messages` (with RLS)
-   - `comparisons` (with RLS)
-   - `handle_updated_at()` and triggers
+   - `reports` — one row per (user, candidate); payload is the full HiringReport JSON (with RLS).
+   - `chats` — one chat per (user, candidate) for conversation history (with RLS).
+   - `messages` — messages within a chat (with RLS).
+   - `comparisons` — one row per (user, candidate_a, candidate_b); result is comparison JSON (with RLS).
+   - `user_preferences` — role_level, focus (and optionally GitHub token; see migration in schema if added later) (with RLS).
+   - `handle_updated_at()` and triggers on reports, chats, user_preferences.
 
 ---
 
@@ -131,6 +132,14 @@ If you want Google, GitHub, etc.:
 
 - **RLS errors when reading/writing data**  
   Ensure you ran the full `supabase/schema.sql` so RLS policies exist. Signed-in users can only access their own rows (`auth.uid() = user_id`).
+
+- **GitHub token column missing**  
+  If you ran the schema before the `github_token_encrypted` column was added, run this in the SQL Editor:
+
+  ```sql
+  alter table public.user_preferences
+  add column if not exists github_token_encrypted text;
+  ```
 
 - **Types out of date**  
   If you change the schema in Supabase, you can regenerate TypeScript types with the Supabase CLI:

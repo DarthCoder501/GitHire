@@ -38,6 +38,8 @@ export interface HiringReport {
   overallScore: number;
   verdict: Verdict;
   verdictReasoning: string;
+  /** Recommended role(s) this candidate is best suited for (e.g. Frontend Engineer, Full-stack). */
+  recommendedRoles?: string[];
   scores: ScoreBreakdown;
   strengths: StrengthItem[];
   weaknesses: StrengthItem[];

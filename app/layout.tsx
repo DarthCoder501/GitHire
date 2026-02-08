@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,17 +19,26 @@ export const metadata: Metadata = {
     "Analyze any developer's GitHub profile and produce a comprehensive, hiring-grade evaluation with scores, strengths, weaknesses, and a final recommendation.",
 };
 
+/** Set theme before paint to avoid flash (runs inlined before React). */
+const themeScript = `
+(function(){
+  var t = typeof localStorage !== 'undefined' ? localStorage.getItem('githire-theme') : null;
+  document.documentElement.setAttribute('data-theme', t === 'light' || t === 'dark' ? t : 'dark');
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased noise`}
       >
-        {children}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

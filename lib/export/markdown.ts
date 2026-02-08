@@ -25,6 +25,13 @@ export function generateMarkdown(report: HiringReport): string {
   );
   push("");
 
+  /* ── Recommended role(s) ── */
+  if (report.recommendedRoles?.length) {
+    push("## Recommended role(s)", "");
+    for (const role of report.recommendedRoles) push(`- ${role}`);
+    push("");
+  }
+
   /* ── Executive Summary ── */
   push("## Executive Summary", "");
   push(report.executiveSummary || "—", "");

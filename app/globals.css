@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
-/* ─── Design tokens ─── */
-:root {
-  --void-black: #07080d;
-  --deep-navy: #0b0e18;
+/* ─── Design tokens (dark default) ─── */
+:root,
+[data-theme="dark"] {
+  --void-black: #0f1117;
+  --deep-navy: #131720;
   --surface-1: rgba(17, 21, 35, 0.65);
   --surface-2: rgba(24, 30, 52, 0.55);
   --border-glass: rgba(255, 255, 255, 0.06);
@@ -19,6 +20,25 @@
   --text-tertiary: rgba(240, 242, 245, 0.3);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* ─── Light theme ─── */
+[data-theme="light"] {
+  --void-black: #f4f6f9;
+  --deep-navy: #e8ecf1;
+  --surface-1: rgba(255, 255, 255, 0.72);
+  --surface-2: rgba(255, 255, 255, 0.6);
+  --border-glass: rgba(0, 0, 0, 0.06);
+  --border-glow: rgba(0, 180, 140, 0.25);
+  --teal: #00a67e;
+  --teal-dim: rgba(0, 166, 126, 0.15);
+  --green: #00b347;
+  --green-dim: rgba(0, 179, 71, 0.12);
+  --amber: #c9940a;
+  --red: #d93d52;
+  --text-primary: #0d0e12;
+  --text-secondary: rgba(13, 14, 18, 0.65);
+  --text-tertiary: rgba(13, 14, 18, 0.4);
 }
 
 @theme inline {
@@ -65,6 +85,13 @@ body {
     0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
+[data-theme="light"] .glass {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.03) inset,
+    0 8px 40px rgba(0, 0, 0, 0.08),
+    0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
 .glass-hover {
   transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -75,6 +102,13 @@ body {
     0 8px 48px rgba(0, 0, 0, 0.5),
     0 0 30px rgba(0, 229, 176, 0.06);
   transform: translateY(-2px);
+}
+
+[data-theme="light"] .glass-hover:hover {
+  box-shadow:
+    0 0 0 1px rgba(0, 166, 126, 0.12) inset,
+    0 8px 48px rgba(0, 0, 0, 0.1),
+    0 0 24px rgba(0, 166, 126, 0.08);
 }
 
 /* ─── Gradient text ─── */
@@ -99,6 +133,13 @@ body {
     0 0 60px rgba(0, 229, 176, 0.08);
 }
 
+[data-theme="light"] .glow-ring:focus {
+  box-shadow:
+    0 0 0 2px var(--teal),
+    0 0 16px rgba(0, 166, 126, 0.25),
+    0 0 40px rgba(0, 166, 126, 0.1);
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar {
   width: 6px;
@@ -112,6 +153,13 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.14);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* ─── Noise texture overlay ─── */

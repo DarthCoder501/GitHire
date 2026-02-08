@@ -83,6 +83,24 @@ export function ReportView({ report, showExport = true }: ReportViewProps) {
           />
         </GlassCard>
 
+        {/* Panel 2b — Recommended role(s) */}
+        {(report.recommendedRoles?.length ?? 0) > 0 && (
+          <GlassCard className="py-8" variants={fadeUp}>
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-tertiary mb-4 block text-center">
+              Recommended role(s)
+            </span>
+            <ul className="flex flex-wrap gap-2 justify-center">
+              {report.recommendedRoles!.map((role) => (
+                <li key={role}>
+                  <span className="inline-block px-4 py-2 rounded-xl text-sm font-medium bg-teal/10 text-teal border border-teal/20">
+                    {role}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </GlassCard>
+        )}
+
         {/* Panel 3 — Top Strengths */}
         <GlassCard variants={fadeUp}>
           <StrengthsList

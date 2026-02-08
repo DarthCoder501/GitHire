@@ -107,6 +107,13 @@ export async function downloadPDF(report: HiringReport): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   y = (doc as any).lastAutoTable.finalY + 16;
 
+  /* ── Recommended role(s) ── */
+  if (report.recommendedRoles?.length) {
+    heading("Recommended role(s)");
+    for (const role of report.recommendedRoles) bullet(role);
+    spacer();
+  }
+
   /* ── Executive Summary ── */
   heading("Executive Summary");
   body(report.executiveSummary || "—");

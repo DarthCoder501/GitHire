@@ -76,15 +76,17 @@ export default function SignUpPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* Logo */}
+        {/* Logo + avatar */}
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <Image
-            src="/headstarter-logo.png"
-            alt="Headstarter"
-            width={32}
-            height={32}
-            className="rounded-lg"
-          />
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden border border-teal/20 bg-teal/10 shrink-0">
+            <Image
+              src="/robot.png"
+              alt="GitHire"
+              width={32}
+              height={32}
+              className="object-contain"
+            />
+          </div>
           <span className="text-lg font-semibold tracking-tight text-gradient">
             GitHire
           </span>
